@@ -87,11 +87,10 @@ const Categories = ({
             <Link
               href={`/category/${category.id}`}
               key={category.id}
-              className="block h-full"
-              style={{ maxWidth: "240px" }}
+              className="block h-full w-full"
             >
               <Card className="h-full overflow-hidden hover:shadow-md transition-shadow duration-300 bg-card rounded-xl border-0 shadow">
-                <div className="relative w-full h-20">
+                <div className="relative w-full aspect-square">
                   <Image
                     src={category.image}
                     alt={category.name}

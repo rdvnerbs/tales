@@ -3,6 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useUser } from "./UserProvider";
 import {
   Search,
   Menu,
@@ -13,12 +15,16 @@ import {
   Bookmark,
   Globe,
   Settings,
+  LogIn,
+  User,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { ThemeSwitcher } from "./theme-switcher";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import LanguageSwitcher from "./LanguageSwitcher";
+import { t } from "@/lib/i18n";
 
 interface HeaderProps {
   logo?: string;
@@ -29,21 +35,14 @@ interface HeaderProps {
 
 const Header = ({
   logo = "/logo.svg",
-  title = "Masal Dünyası",
+  title = t("app.name"),
   isSearchVisible = true,
   onSearch = () => {},
 }: HeaderProps) => {
+  const router = useRouter();
+  const { user, loading, signOut, role } = useUser();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
-  const [language, setLanguage] = React.useState("tr");
-
-  const languages = [
-    { code: "tr", name: "Türkçe" },
-    { code: "en", name: "English" },
-    { code: "de", name: "Deutsch" },
-    { code: "fr", name: "Français" },
-    { code: "ar", name: "العربية" },
-  ];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,7 +111,7 @@ const Header = ({
             <form onSubmit={handleSearch} className="hidden md:flex relative">
               <Input
                 type="search"
-                placeholder="Masal ara..."
+                placeholder={t("search.placeholder")}
                 className="w-[200px] lg:w-[300px]"
                 value={searchQuery}
                 onChange={(e) => {
@@ -134,45 +133,42 @@ const Header = ({
           )}
 
           <div className="flex items-center gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
+            <LanguageSwitcher />
+            <ThemeSwitcher />
+            {user ? (
+              <>
+                {role === "admin" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center gap-1"
+                    onClick={() => router.push("/admin/dashboard")}
+                  >
+                    <Settings size={16} className="mr-1" />
+                    <span className="hidden md:inline">Admin</span>
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
                   className="flex items-center gap-1"
+                  onClick={() => router.push("/profile")}
                 >
-                  <Globe size={16} />
-                  <span className="hidden md:inline">
-                    {languages.find((lang) => lang.code === language)?.name}
-                  </span>
+                  <User size={16} className="mr-1" />
+                  <span className="hidden md:inline">Profil</span>
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-2">
-                <div className="flex flex-col gap-1">
-                  {languages.map((lang) => (
-                    <Button
-                      key={lang.code}
-                      variant="ghost"
-                      size="sm"
-                      className={`justify-start ${language === lang.code ? "bg-muted" : ""}`}
-                      onClick={() => setLanguage(lang.code)}
-                    >
-                      {lang.name}
-                    </Button>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-            <ThemeSwitcher />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex items-center gap-1"
-              onClick={() => (window.location.href = "/admin/dashboard")}
-            >
-              <Settings size={16} className="mr-1" />
-              <span className="hidden md:inline">Admin</span>
-            </Button>
+              </>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-1"
+                onClick={() => router.push("/login")}
+              >
+                <LogIn size={16} className="mr-1" />
+                <span className="hidden md:inline">Giriş Yap</span>
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -220,13 +216,36 @@ const Header = ({
                       {item.name}
                     </Link>
                   ))}
-                  <Link
-                    href="/admin/dashboard"
-                    className="text-sm font-medium transition-colors hover:text-primary py-2 flex items-center"
-                  >
-                    <Settings size={16} className="mr-1" />
-                    Admin
-                  </Link>
+                  {user ? (
+                    <>
+                      <Link
+                        href="/profile"
+                        className="text-sm font-medium transition-colors hover:text-primary py-2 flex items-center"
+                      >
+                        <User size={16} className="mr-1" />
+                        Profil
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        className="text-sm font-medium transition-colors hover:text-primary py-2 flex items-center w-full justify-start"
+                        onClick={async () => {
+                          await signOut();
+                          router.push("/login");
+                        }}
+                      >
+                        <LogIn size={16} className="mr-1" />
+                        Çıkış Yap
+                      </Button>
+                    </>
+                  ) : (
+                    <Link
+                      href="/login"
+                      className="text-sm font-medium transition-colors hover:text-primary py-2 flex items-center"
+                    >
+                      <LogIn size={16} className="mr-1" />
+                      Giriş Yap
+                    </Link>
+                  )}
                 </nav>
               </div>
             </SheetContent>

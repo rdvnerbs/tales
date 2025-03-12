@@ -3,6 +3,9 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useUser } from "./UserProvider";
+import { toggleFavorite, toggleBookmark } from "@/lib/user-actions";
 import { Heart, Bookmark } from "lucide-react";
 import {
   Card,
@@ -13,6 +16,7 @@ import {
   CardDescription,
 } from "./ui/card";
 import { Button } from "./ui/button";
+import { t } from "@/lib/i18n";
 
 interface StoryCardProps {
   id?: string;
@@ -37,13 +41,12 @@ const StoryCard = ({
   onClick = () => {},
   compact = false,
 }: StoryCardProps) => {
+  const router = useRouter();
+  const { user } = useUser();
   return (
-    <Card
-      className="w-full h-full overflow-hidden flex flex-col transition-all duration-200 hover:shadow-lg bg-card rounded-xl border-0 shadow"
-      style={{ maxWidth: "240px" }}
-    >
+    <Card className="w-full h-full overflow-hidden flex flex-col transition-all duration-200 hover:shadow-lg bg-card rounded-xl border-0 shadow">
       <Link href={`/story/${id}`}>
-        <div className="relative w-full aspect-[3/4] overflow-hidden">
+        <div className="relative w-full aspect-square overflow-hidden">
           <Image
             src={coverImage}
             alt={title}
@@ -55,9 +58,16 @@ const StoryCard = ({
               variant="ghost"
               size="icon"
               className={`h-8 w-8 rounded-full bg-background/80 ${isFavorite ? "text-red-500" : "text-gray-500"}`}
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.preventDefault();
-                // Toggle favorite functionality would go here
+                // Favorilere eklemek için login kontrolü
+                if (!user) {
+                  router.push("/login");
+                  return;
+                }
+                // Favorilere ekle/çıkar
+                const newValue = !isFavorite;
+                await toggleFavorite(user.id, id, newValue);
               }}
             >
               <Heart size={16} className={isFavorite ? "fill-current" : ""} />
@@ -66,9 +76,16 @@ const StoryCard = ({
               variant="ghost"
               size="icon"
               className={`h-8 w-8 rounded-full bg-background/80 ${isBookmarked ? "text-blue-500" : "text-gray-500"}`}
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.preventDefault();
-                // Toggle bookmark functionality would go here
+                // Yer işaretlerine eklemek için login kontrolü
+                if (!user) {
+                  router.push("/login");
+                  return;
+                }
+                // Yer işaretlerine ekle/çıkar
+                const newValue = !isBookmarked;
+                await toggleBookmark(user.id, id, newValue);
               }}
             >
               <Bookmark
@@ -79,12 +96,10 @@ const StoryCard = ({
           </div>
         </div>
       </Link>
-
       <CardHeader className="p-3 pb-2">
         <div className="text-xs text-muted-foreground mb-1">{category}</div>
         <CardTitle className="text-base truncate">{title}</CardTitle>
       </CardHeader>
-
       {!compact && (
         <CardContent className="p-3 pt-0 flex-grow">
           <CardDescription className="text-xs line-clamp-2">
@@ -92,7 +107,6 @@ const StoryCard = ({
           </CardDescription>
         </CardContent>
       )}
-
       <CardFooter className="p-3 pt-0">
         <Link href={`/story/${id}`} className="w-full">
           <Button
@@ -105,7 +119,7 @@ const StoryCard = ({
               window.location.href = `/story/${id}`;
             }}
           >
-            Okumaya Başla
+            {t("story.readButton")}
           </Button>
         </Link>
       </CardFooter>

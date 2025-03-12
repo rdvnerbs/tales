@@ -11,6 +11,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import AdminHeader from "../components/AdminHeader";
 import AdminSidebar from "../components/AdminSidebar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import AuthCheck from "@/components/AuthCheck";
 
 export default function AdminSettings() {
   const [loading, setLoading] = useState(false);
@@ -45,6 +54,7 @@ export default function AdminSettings() {
 
   // Görünüm ayarları
   const [appearanceSettings, setAppearanceSettings] = useState({
+    theme: "default",
     primaryColor: "#000000",
     secondaryColor: "#f5f5f5",
     accentColor: "#f5f5f5",
@@ -54,6 +64,49 @@ export default function AdminSettings() {
       "https://images.unsplash.com/photo-1618945524163-32451704cbb8?w=32&h=32&q=80",
   });
 
+  // Tema seçenekleri
+  const themeOptions = [
+    { value: "default", label: "Varsayılan Tema" },
+    { value: "light", label: "Açık Tema" },
+    { value: "dark", label: "Koyu Tema" },
+    { value: "colorful", label: "Renkli Tema" },
+    { value: "minimal", label: "Minimal Tema" },
+  ];
+
+  useEffect(() => {
+    // Kaydedilmiş ayarları localStorage'dan yükle
+    const loadSettings = () => {
+      try {
+        const savedGeneralSettings = localStorage.getItem("generalSettings");
+        const savedSocialSettings = localStorage.getItem("socialSettings");
+        const savedSeoSettings = localStorage.getItem("seoSettings");
+        const savedAppearanceSettings =
+          localStorage.getItem("appearanceSettings");
+
+        if (savedGeneralSettings) {
+          setGeneralSettings(JSON.parse(savedGeneralSettings));
+        }
+
+        if (savedSocialSettings) {
+          setSocialSettings(JSON.parse(savedSocialSettings));
+        }
+
+        if (savedSeoSettings) {
+          setSeoSettings(JSON.parse(savedSeoSettings));
+        }
+
+        if (savedAppearanceSettings) {
+          setAppearanceSettings(JSON.parse(savedAppearanceSettings));
+        }
+      } catch (error) {
+        console.error("Ayarları yükleme hatası:", error);
+      }
+    };
+
+    loadSettings();
+    setActiveTab("general");
+  }, []);
+
   // Ayarları kaydet
   const saveSettings = async () => {
     setLoading(true);
@@ -61,9 +114,17 @@ export default function AdminSettings() {
     setSaveError("");
 
     try {
-      // Burada normalde bir API çağrısı yapılır ve ayarlar veritabanına kaydedilir
-      // Şimdilik sadece simüle ediyoruz
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Ayarları localStorage'a kaydet
+      localStorage.setItem("generalSettings", JSON.stringify(generalSettings));
+      localStorage.setItem("socialSettings", JSON.stringify(socialSettings));
+      localStorage.setItem("seoSettings", JSON.stringify(seoSettings));
+      localStorage.setItem(
+        "appearanceSettings",
+        JSON.stringify(appearanceSettings),
+      );
+
+      // Simüle edilmiş bir gecikme
+      await new Promise((resolve) => setTimeout(resolve, 800));
 
       // Başarılı mesajını göster
       setSaveSuccess(true);
@@ -105,358 +166,400 @@ export default function AdminSettings() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      <AdminSidebar />
+    <AuthCheck adminOnly={true}>
+      <div className="min-h-screen bg-background flex">
+        <AdminSidebar />
 
-      <div className="flex-1">
-        <AdminHeader title="Ayarlar" />
+        <div className="flex-1">
+          <AdminHeader title="Ayarlar" />
 
-        <main className="p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold">Site Ayarları</h1>
-            <p className="text-muted-foreground">
-              Sitenizin genel ayarlarını buradan yönetebilirsiniz.
-            </p>
-          </div>
+          <main className="p-6">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">Site Ayarları</h1>
+              <p className="text-muted-foreground">
+                Sitenizin genel ayarlarını buradan yönetebilirsiniz.
+              </p>
+            </div>
 
-          {saveSuccess && (
-            <Alert className="mb-6 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
-              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <AlertDescription className="text-green-600 dark:text-green-400">
-                Ayarlar başarıyla kaydedildi.
-              </AlertDescription>
-            </Alert>
-          )}
+            {saveSuccess && (
+              <Alert className="mb-6 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <AlertDescription className="text-green-600 dark:text-green-400">
+                  Ayarlar başarıyla kaydedildi.
+                </AlertDescription>
+              </Alert>
+            )}
 
-          {saveError && (
-            <Alert className="mb-6" variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{saveError}</AlertDescription>
-            </Alert>
-          )}
+            {saveError && (
+              <Alert className="mb-6" variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{saveError}</AlertDescription>
+              </Alert>
+            )}
 
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="space-y-4"
-          >
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="general">Genel</TabsTrigger>
-              <TabsTrigger value="social">Sosyal Medya</TabsTrigger>
-              <TabsTrigger value="seo">SEO</TabsTrigger>
-              <TabsTrigger value="appearance">Görünüm</TabsTrigger>
-            </TabsList>
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="space-y-4"
+            >
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="general">Genel</TabsTrigger>
+                <TabsTrigger value="social">Sosyal Medya</TabsTrigger>
+                <TabsTrigger value="seo">SEO</TabsTrigger>
+                <TabsTrigger value="appearance">Görünüm</TabsTrigger>
+              </TabsList>
 
-            {/* Genel Ayarlar */}
-            <TabsContent value="general">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Genel Ayarlar</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <label htmlFor="siteName" className="text-sm font-medium">
-                      Site Adı
-                    </label>
-                    <Input
-                      id="siteName"
-                      name="siteName"
-                      value={generalSettings.siteName}
-                      onChange={handleGeneralChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="siteDescription"
-                      className="text-sm font-medium"
-                    >
-                      Site Açıklaması
-                    </label>
-                    <Textarea
-                      id="siteDescription"
-                      name="siteDescription"
-                      value={generalSettings.siteDescription}
-                      onChange={handleGeneralChange}
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="contactEmail"
-                      className="text-sm font-medium"
-                    >
-                      İletişim E-posta
-                    </label>
-                    <Input
-                      id="contactEmail"
-                      name="contactEmail"
-                      type="email"
-                      value={generalSettings.contactEmail}
-                      onChange={handleGeneralChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="footerText" className="text-sm font-medium">
-                      Alt Bilgi Metni
-                    </label>
-                    <Input
-                      id="footerText"
-                      name="footerText"
-                      value={generalSettings.footerText}
-                      onChange={handleGeneralChange}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Sosyal Medya Ayarları */}
-            <TabsContent value="social">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Sosyal Medya Ayarları</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <label htmlFor="facebook" className="text-sm font-medium">
-                      Facebook URL
-                    </label>
-                    <Input
-                      id="facebook"
-                      name="facebook"
-                      value={socialSettings.facebook}
-                      onChange={handleSocialChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="twitter" className="text-sm font-medium">
-                      Twitter URL
-                    </label>
-                    <Input
-                      id="twitter"
-                      name="twitter"
-                      value={socialSettings.twitter}
-                      onChange={handleSocialChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="instagram" className="text-sm font-medium">
-                      Instagram URL
-                    </label>
-                    <Input
-                      id="instagram"
-                      name="instagram"
-                      value={socialSettings.instagram}
-                      onChange={handleSocialChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="youtube" className="text-sm font-medium">
-                      YouTube URL
-                    </label>
-                    <Input
-                      id="youtube"
-                      name="youtube"
-                      value={socialSettings.youtube}
-                      onChange={handleSocialChange}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* SEO Ayarları */}
-            <TabsContent value="seo">
-              <Card>
-                <CardHeader>
-                  <CardTitle>SEO Ayarları</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <label htmlFor="metaTitle" className="text-sm font-medium">
-                      Meta Başlık
-                    </label>
-                    <Input
-                      id="metaTitle"
-                      name="metaTitle"
-                      value={seoSettings.metaTitle}
-                      onChange={handleSeoChange}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="metaDescription"
-                      className="text-sm font-medium"
-                    >
-                      Meta Açıklama
-                    </label>
-                    <Textarea
-                      id="metaDescription"
-                      name="metaDescription"
-                      value={seoSettings.metaDescription}
-                      onChange={handleSeoChange}
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="keywords" className="text-sm font-medium">
-                      Anahtar Kelimeler
-                    </label>
-                    <Textarea
-                      id="keywords"
-                      name="keywords"
-                      value={seoSettings.keywords}
-                      onChange={handleSeoChange}
-                      rows={2}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Virgülle ayırarak yazın.
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="googleAnalyticsId"
-                      className="text-sm font-medium"
-                    >
-                      Google Analytics ID
-                    </label>
-                    <Input
-                      id="googleAnalyticsId"
-                      name="googleAnalyticsId"
-                      value={seoSettings.googleAnalyticsId}
-                      onChange={handleSeoChange}
-                      placeholder="UA-XXXXXXXXX-X"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Görünüm Ayarları */}
-            <TabsContent value="appearance">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Görünüm Ayarları</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Genel Ayarlar */}
+              <TabsContent value="general">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Genel Ayarlar</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <label
-                        htmlFor="primaryColor"
-                        className="text-sm font-medium"
-                      >
-                        Ana Renk
+                      <label htmlFor="siteName" className="text-sm font-medium">
+                        Site Adı
                       </label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="primaryColor"
-                          name="primaryColor"
-                          type="color"
-                          value={appearanceSettings.primaryColor}
-                          onChange={handleAppearanceChange}
-                          className="w-12 h-10 p-1"
-                        />
-                        <Input
-                          value={appearanceSettings.primaryColor}
-                          onChange={handleAppearanceChange}
-                          name="primaryColor"
-                        />
-                      </div>
+                      <Input
+                        id="siteName"
+                        name="siteName"
+                        value={generalSettings.siteName}
+                        onChange={handleGeneralChange}
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <label
-                        htmlFor="secondaryColor"
+                        htmlFor="siteDescription"
                         className="text-sm font-medium"
                       >
-                        İkincil Renk
+                        Site Açıklaması
                       </label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="secondaryColor"
-                          name="secondaryColor"
-                          type="color"
-                          value={appearanceSettings.secondaryColor}
-                          onChange={handleAppearanceChange}
-                          className="w-12 h-10 p-1"
-                        />
-                        <Input
-                          value={appearanceSettings.secondaryColor}
-                          onChange={handleAppearanceChange}
-                          name="secondaryColor"
-                        />
-                      </div>
+                      <Textarea
+                        id="siteDescription"
+                        name="siteDescription"
+                        value={generalSettings.siteDescription}
+                        onChange={handleGeneralChange}
+                        rows={3}
+                      />
                     </div>
 
                     <div className="space-y-2">
                       <label
-                        htmlFor="accentColor"
+                        htmlFor="contactEmail"
                         className="text-sm font-medium"
                       >
-                        Vurgu Rengi
+                        İletişim E-posta
                       </label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="accentColor"
-                          name="accentColor"
-                          type="color"
-                          value={appearanceSettings.accentColor}
-                          onChange={handleAppearanceChange}
-                          className="w-12 h-10 p-1"
-                        />
-                        <Input
-                          value={appearanceSettings.accentColor}
-                          onChange={handleAppearanceChange}
-                          name="accentColor"
-                        />
+                      <Input
+                        id="contactEmail"
+                        name="contactEmail"
+                        type="email"
+                        value={generalSettings.contactEmail}
+                        onChange={handleGeneralChange}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="footerText"
+                        className="text-sm font-medium"
+                      >
+                        Alt Bilgi Metni
+                      </label>
+                      <Input
+                        id="footerText"
+                        name="footerText"
+                        value={generalSettings.footerText}
+                        onChange={handleGeneralChange}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Sosyal Medya Ayarları */}
+              <TabsContent value="social">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Sosyal Medya Ayarları</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <label htmlFor="facebook" className="text-sm font-medium">
+                        Facebook URL
+                      </label>
+                      <Input
+                        id="facebook"
+                        name="facebook"
+                        value={socialSettings.facebook}
+                        onChange={handleSocialChange}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="twitter" className="text-sm font-medium">
+                        Twitter URL
+                      </label>
+                      <Input
+                        id="twitter"
+                        name="twitter"
+                        value={socialSettings.twitter}
+                        onChange={handleSocialChange}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="instagram"
+                        className="text-sm font-medium"
+                      >
+                        Instagram URL
+                      </label>
+                      <Input
+                        id="instagram"
+                        name="instagram"
+                        value={socialSettings.instagram}
+                        onChange={handleSocialChange}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="youtube" className="text-sm font-medium">
+                        YouTube URL
+                      </label>
+                      <Input
+                        id="youtube"
+                        name="youtube"
+                        value={socialSettings.youtube}
+                        onChange={handleSocialChange}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* SEO Ayarları */}
+              <TabsContent value="seo">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>SEO Ayarları</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="metaTitle"
+                        className="text-sm font-medium"
+                      >
+                        Meta Başlık
+                      </label>
+                      <Input
+                        id="metaTitle"
+                        name="metaTitle"
+                        value={seoSettings.metaTitle}
+                        onChange={handleSeoChange}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="metaDescription"
+                        className="text-sm font-medium"
+                      >
+                        Meta Açıklama
+                      </label>
+                      <Textarea
+                        id="metaDescription"
+                        name="metaDescription"
+                        value={seoSettings.metaDescription}
+                        onChange={handleSeoChange}
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="keywords" className="text-sm font-medium">
+                        Anahtar Kelimeler
+                      </label>
+                      <Textarea
+                        id="keywords"
+                        name="keywords"
+                        value={seoSettings.keywords}
+                        onChange={handleSeoChange}
+                        rows={2}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Virgülle ayırarak yazın.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="googleAnalyticsId"
+                        className="text-sm font-medium"
+                      >
+                        Google Analytics ID
+                      </label>
+                      <Input
+                        id="googleAnalyticsId"
+                        name="googleAnalyticsId"
+                        value={seoSettings.googleAnalyticsId}
+                        onChange={handleSeoChange}
+                        placeholder="UA-XXXXXXXXX-X"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Görünüm Ayarları */}
+              <TabsContent value="appearance">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Görünüm Ayarları</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2 mb-4">
+                      <label htmlFor="theme" className="text-sm font-medium">
+                        Tema
+                      </label>
+                      <Select
+                        value={appearanceSettings.theme}
+                        onValueChange={(value) =>
+                          handleAppearanceChange({
+                            target: { name: "theme", value },
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Tema seçin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {themeOptions.map((theme) => (
+                            <SelectItem key={theme.value} value={theme.value}>
+                              {theme.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Not: Varsayılan tema her zaman kullanılabilir olacaktır.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="primaryColor"
+                          className="text-sm font-medium"
+                        >
+                          Ana Renk
+                        </label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="primaryColor"
+                            name="primaryColor"
+                            type="color"
+                            value={appearanceSettings.primaryColor}
+                            onChange={handleAppearanceChange}
+                            className="w-12 h-10 p-1"
+                          />
+                          <Input
+                            value={appearanceSettings.primaryColor}
+                            onChange={handleAppearanceChange}
+                            name="primaryColor"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="secondaryColor"
+                          className="text-sm font-medium"
+                        >
+                          İkincil Renk
+                        </label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="secondaryColor"
+                            name="secondaryColor"
+                            type="color"
+                            value={appearanceSettings.secondaryColor}
+                            onChange={handleAppearanceChange}
+                            className="w-12 h-10 p-1"
+                          />
+                          <Input
+                            value={appearanceSettings.secondaryColor}
+                            onChange={handleAppearanceChange}
+                            name="secondaryColor"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="accentColor"
+                          className="text-sm font-medium"
+                        >
+                          Vurgu Rengi
+                        </label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="accentColor"
+                            name="accentColor"
+                            type="color"
+                            value={appearanceSettings.accentColor}
+                            onChange={handleAppearanceChange}
+                            className="w-12 h-10 p-1"
+                          />
+                          <Input
+                            value={appearanceSettings.accentColor}
+                            onChange={handleAppearanceChange}
+                            name="accentColor"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <label htmlFor="logoUrl" className="text-sm font-medium">
-                      Logo URL
-                    </label>
-                    <Input
-                      id="logoUrl"
-                      name="logoUrl"
-                      value={appearanceSettings.logoUrl}
-                      onChange={handleAppearanceChange}
-                    />
-                  </div>
+                    <div className="space-y-2">
+                      <label htmlFor="logoUrl" className="text-sm font-medium">
+                        Logo URL
+                      </label>
+                      <Input
+                        id="logoUrl"
+                        name="logoUrl"
+                        value={appearanceSettings.logoUrl}
+                        onChange={handleAppearanceChange}
+                      />
+                    </div>
 
-                  <div className="space-y-2">
-                    <label htmlFor="faviconUrl" className="text-sm font-medium">
-                      Favicon URL
-                    </label>
-                    <Input
-                      id="faviconUrl"
-                      name="faviconUrl"
-                      value={appearanceSettings.faviconUrl}
-                      onChange={handleAppearanceChange}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="faviconUrl"
+                        className="text-sm font-medium"
+                      >
+                        Favicon URL
+                      </label>
+                      <Input
+                        id="faviconUrl"
+                        name="faviconUrl"
+                        value={appearanceSettings.faviconUrl}
+                        onChange={handleAppearanceChange}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
 
-          <div className="mt-6 flex justify-end">
-            <Button onClick={saveSettings} disabled={loading}>
-              {loading ? "Kaydediliyor..." : "Ayarları Kaydet"}
-            </Button>
-          </div>
-        </main>
+            <div className="mt-6 flex justify-end">
+              <Button onClick={saveSettings} disabled={loading}>
+                {loading ? "Kaydediliyor..." : "Ayarları Kaydet"}
+              </Button>
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </AuthCheck>
   );
 }

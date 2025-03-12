@@ -130,7 +130,7 @@ const PopularStories = ({
         >
           <div className="flex space-x-4 pb-4">
             {stories.map((story) => (
-              <div key={story.id} className="shrink-0 w-[240px]">
+              <div key={story.id} className="shrink-0 w-[180px] h-full">
                 <StoryCard
                   id={story.id}
                   title={story.title}

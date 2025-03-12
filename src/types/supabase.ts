@@ -154,6 +154,48 @@ export type Database = {
           },
         ]
       }
+      user_activities: {
+        Row: {
+          activity_type: string | null
+          created_at: string | null
+          id: string
+          story_id: string | null
+          user_id: string | null
+          value: number | null
+        }
+        Insert: {
+          activity_type?: string | null
+          created_at?: string | null
+          id?: string
+          story_id?: string | null
+          user_id?: string | null
+          value?: number | null
+        }
+        Update: {
+          activity_type?: string | null
+          created_at?: string | null
+          id?: string
+          story_id?: string | null
+          user_id?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activities_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_activities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_stories: {
         Row: {
           created_at: string | null
@@ -235,6 +277,39 @@ export type Database = {
         }
         Relationships: []
       }
+      visitors: {
+        Row: {
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          language: string | null
+          page_visited: string | null
+          referrer: string | null
+          user_agent: string | null
+          visit_time: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          language?: string | null
+          page_visited?: string | null
+          referrer?: string | null
+          user_agent?: string | null
+          visit_time?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          language?: string | null
+          page_visited?: string | null
+          referrer?: string | null
+          user_agent?: string | null
+          visit_time?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -278,7 +353,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      user_role: "user" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never

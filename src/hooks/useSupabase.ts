@@ -31,23 +31,52 @@ export function useSupabaseAuth() {
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log("Giriş yapılıyor:", email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Auth giriş hatası:", error);
+        throw error;
+      }
 
-      // Kullanıcı rolünü kontrol et
-      const { data: userData, error: userError } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", data.user.id)
-        .single();
+      console.log("Auth giriş başarılı:", data.user);
 
-      if (userError) throw userError;
+      try {
+        // Kullanıcı rolünü kontrol et
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select("role")
+          .eq("id", data.user.id)
+          .single();
 
-      return { user: data.user, role: userData?.role || "user", error: null };
+        if (userError) {
+          console.log("Kullanıcı bulunamadı, ekleniyor:", data.user.id);
+          // Kullanıcı bulunamadıysa, users tablosuna ekle
+          const { error: insertError } = await supabase.from("users").insert({
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.user_metadata?.name || email.split("@")[0],
+            role: "user",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+          if (insertError) {
+            console.error("Kullanıcı ekleme hatası:", insertError);
+          }
+          return { user: data.user, role: "user", error: null };
+        }
+
+        console.log("Kullanıcı rolü:", userData?.role);
+        return { user: data.user, role: userData?.role || "user", error: null };
+      } catch (userError) {
+        console.error("Kullanıcı bilgisi getirme hatası:", userError);
+        // Hata olsa bile kullanıcı girişini tamamla
+        return { user: data.user, role: "user", error: null };
+      }
     } catch (error) {
       console.error("Giriş hatası:", error);
       return { user: null, role: null, error };
@@ -56,26 +85,79 @@ export function useSupabaseAuth() {
 
   const signUp = async (email: string, password: string, name: string) => {
     try {
+      console.log("Kayıt yapılıyor:", email);
+      // Kullanıcıyı auth sistemine kaydet - email onayı olmadan
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: { name },
+          emailRedirectTo: `${window.location.origin}/login`,
+          // Email onayını devre dışı bırak
+          emailConfirm: false,
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Auth kayıt hatası:", error);
+        throw error;
+      }
+
+      console.log("Auth kayıt başarılı:", data.user);
 
       // Kullanıcı profili oluştur
       if (data.user) {
-        const { error: profileError } = await supabase.from("users").insert({
-          id: data.user.id,
-          email: data.user.email,
-          name,
-          role: "user", // Varsayılan olarak normal kullanıcı
+        try {
+          // Kullanıcı tablosuna doğrudan eklemeyi dene
+          const { error: insertError } = await supabase.from("users").insert({
+            id: data.user.id,
+            email: data.user.email,
+            name,
+            role: "user", // Varsayılan olarak normal kullanıcı
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+          if (insertError) {
+            console.error("Kullanıcı ekleme hatası:", insertError);
+          } else {
+            console.log("Kullanıcı başarıyla eklendi");
+          }
+        } catch (profileError) {
+          console.error("Profil oluşturma hatası:", profileError);
+          // Profil oluşturma hatası olsa bile kullanıcı kaydını tamamla
+        }
+      }
+
+      // Kullanıcıyı otomatik olarak giriş yaptır
+      if (data.user) {
+        // Önce email_confirmed_at değerini güncelle
+        try {
+          const { error: updateError } =
+            await supabase.auth.admin.updateUserById(data.user.id, {
+              email_confirmed: true,
+            });
+
+          if (updateError) {
+            console.error("Email onaylama hatası:", updateError);
+          }
+        } catch (updateError) {
+          console.error("Email onaylama hatası:", updateError);
+        }
+
+        // Otomatik giriş yap
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
         });
 
-        if (profileError) throw profileError;
+        if (signInError) {
+          console.error("Otomatik giriş hatası:", signInError);
+        } else {
+          console.log("Otomatik giriş başarılı");
+          // Kullanıcı bilgilerini güncelle
+          setUser(data.user);
+        }
       }
 
       return { user: data.user, error: null };

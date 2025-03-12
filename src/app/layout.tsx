@@ -3,7 +3,14 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
 import { ThemeProvider } from "./theme-provider";
+import { UserProvider } from "@/components/UserProvider";
 import "./globals.css";
+import { initLanguage } from "@/lib/i18n";
+
+// Dil tercihini başlat
+if (typeof window !== "undefined") {
+  initLanguage();
+}
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,8 +35,10 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
-          <TempoInit />
+          <UserProvider>
+            {children}
+            <TempoInit />
+          </UserProvider>
         </ThemeProvider>
       </body>
     </html>

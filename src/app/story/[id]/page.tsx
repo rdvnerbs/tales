@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { useParams } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useUser } from "@/components/UserProvider";
 import Image from "next/image";
 import {
   Heart,
@@ -16,6 +17,19 @@ import {
   Twitter,
   Instagram,
 } from "lucide-react";
+import { t } from "@/lib/i18n";
+import {
+  trackView,
+  trackLike,
+  trackBookmark,
+  trackListen,
+} from "@/lib/track-activity";
+import {
+  toggleFavorite,
+  toggleBookmark,
+  checkUserStoryStatus,
+} from "@/lib/user-actions";
+import { trackVisitor } from "@/lib/track-visitor";
 import StoryStats from "./components/StoryStats";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -92,8 +106,14 @@ const stories = {
 };
 
 export default function StoryPage() {
+  const router = useRouter();
   const params = useParams();
+  const { user } = useUser();
   const storyId = params.id as string;
+  // UUID formatına dönüştür
+  const uuidStoryId = storyId.startsWith("story-")
+    ? `00000000-0000-0000-0000-${storyId.replace("story-", "").padStart(12, "0")}`
+    : storyId;
   const story = stories[storyId] || stories["story-1"];
 
   const [activeTab, setActiveTab] = useState("read");
@@ -101,6 +121,31 @@ export default function StoryPage() {
   const [isFavorite, setIsFavorite] = useState(story.isFavorite);
   const [isBookmarked, setIsBookmarked] = useState(story.isBookmarked);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Sayfa görüntülendiğinde ziyaretçi bilgilerini kaydet
+    trackVisitor();
+
+    // Hikaye görüntüleme sayısını artır
+    trackView(user?.id || null, uuidStoryId);
+
+    // Kullanıcı giriş yapmışsa, hikaye durumunu kontrol et
+    const checkStatus = async () => {
+      if (user) {
+        try {
+          const { isFavorite: isFav, isBookmarked: isBook } =
+            await checkUserStoryStatus(user.id, storyId);
+          setIsFavorite(isFav);
+          setIsBookmarked(isBook);
+        } catch (error) {
+          console.error("Hikaye durumu kontrol hatası:", error);
+        }
+      }
+    };
+
+    checkStatus();
+  }, [storyId, user, uuidStoryId]);
 
   const handleFontSizeChange = (value: number[]) => {
     setFontSize(value[0]);
@@ -131,7 +176,22 @@ export default function StoryPage() {
                   className={
                     isFavorite ? "text-white bg-red-500 hover:bg-red-600" : ""
                   }
-                  onClick={() => setIsFavorite(!isFavorite)}
+                  onClick={async () => {
+                    if (!user) {
+                      router.push("/login");
+                      return;
+                    }
+                    setIsLoading(true);
+                    const newValue = !isFavorite;
+                    setIsFavorite(newValue);
+
+                    // Favorilere ekle/çıkar
+                    await toggleFavorite(user.id, storyId, newValue);
+
+                    // Aktiviteyi takip et
+                    trackLike(user.id, uuidStoryId, newValue ? 1 : 0);
+                    setIsLoading(false);
+                  }}
                 >
                   <Heart
                     className={isFavorite ? "fill-current" : ""}
@@ -147,7 +207,22 @@ export default function StoryPage() {
                       ? "text-white bg-blue-500 hover:bg-blue-600"
                       : ""
                   }
-                  onClick={() => setIsBookmarked(!isBookmarked)}
+                  onClick={async () => {
+                    if (!user) {
+                      router.push("/login");
+                      return;
+                    }
+                    setIsLoading(true);
+                    const newValue = !isBookmarked;
+                    setIsBookmarked(newValue);
+
+                    // Yer işaretlerine ekle/çıkar
+                    await toggleBookmark(user.id, storyId, newValue);
+
+                    // Aktiviteyi takip et
+                    trackBookmark(user.id, uuidStoryId, newValue ? 1 : 0);
+                    setIsLoading(false);
+                  }}
                 >
                   <Bookmark
                     className={isBookmarked ? "fill-current" : ""}
@@ -191,7 +266,7 @@ export default function StoryPage() {
 
               <Card className="mb-4">
                 <CardContent className="p-4">
-                  <h3 className="font-medium mb-2">Kategori</h3>
+                  <h3 className="font-medium mb-2">{t("story.category")}</h3>
                   <p className="text-sm text-muted-foreground">
                     {story.category}
                   </p>
@@ -205,7 +280,9 @@ export default function StoryPage() {
 
               <Card>
                 <CardContent className="p-4">
-                  <h3 className="font-medium mb-2">Benzer Masallar</h3>
+                  <h3 className="font-medium mb-2">
+                    {t("story.relatedStories")}
+                  </h3>
                   <ul className="space-y-2">
                     {story.relatedStories.map((relatedId) => (
                       <li key={relatedId}>
@@ -232,7 +309,8 @@ export default function StoryPage() {
                 className="mb-2"
                 onClick={() => window.history.back()}
               >
-                <ChevronLeft size={16} className="mr-1" /> Geri Dön
+                <ChevronLeft size={16} className="mr-1" />{" "}
+                {t("story.backButton")}
               </Button>
               <h1 className="text-3xl md:text-4xl font-bold mb-2">
                 {story.title}
@@ -248,26 +326,26 @@ export default function StoryPage() {
               <div className="flex justify-between items-center">
                 <TabsList>
                   <TabsTrigger value="read" className="flex items-center gap-1">
-                    <Book size={16} /> Oku
+                    <Book size={16} /> {t("story.readTab")}
                   </TabsTrigger>
                   <TabsTrigger
                     value="listen"
                     className="flex items-center gap-1"
                   >
-                    <Volume2 size={16} /> Dinle
+                    <Volume2 size={16} /> {t("story.listenTab")}
                   </TabsTrigger>
                   <TabsTrigger
                     value="watch"
                     className="flex items-center gap-1"
                   >
-                    <Play size={16} /> İzle
+                    <Play size={16} /> {t("story.watchTab")}
                   </TabsTrigger>
                 </TabsList>
 
                 {activeTab === "read" && (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">
-                      Yazı Boyutu:
+                      {t("story.fontSize")}:
                     </span>
                     <Slider
                       defaultValue={[fontSize]}
@@ -325,7 +403,17 @@ export default function StoryPage() {
                       <Button
                         size="lg"
                         className="rounded-full h-16 w-16 bg-primary hover:bg-primary/90 shadow-lg flex items-center justify-center"
-                        onClick={() => setIsPlaying(!isPlaying)}
+                        onClick={() => {
+                          if (!user && !isPlaying) {
+                            router.push("/login");
+                            return;
+                          }
+                          const newValue = !isPlaying;
+                          setIsPlaying(newValue);
+                          if (newValue) {
+                            trackListen(user?.id || null, uuidStoryId);
+                          }
+                        }}
                       >
                         {isPlaying ? (
                           <span className="h-4 w-4 bg-white rounded-sm" />
@@ -377,7 +465,22 @@ export default function StoryPage() {
                       variant="ghost"
                       size="icon"
                       className={`rounded-full h-10 w-10 ${isFavorite ? "bg-red-100 dark:bg-red-900/30" : ""}`}
-                      onClick={() => setIsFavorite(!isFavorite)}
+                      onClick={async () => {
+                        if (!user) {
+                          router.push("/login");
+                          return;
+                        }
+                        setIsLoading(true);
+                        const newValue = !isFavorite;
+                        setIsFavorite(newValue);
+
+                        // Favorilere ekle/çıkar
+                        await toggleFavorite(user.id, storyId, newValue);
+
+                        // Aktiviteyi takip et
+                        trackLike(user.id, uuidStoryId, newValue ? 1 : 0);
+                        setIsLoading(false);
+                      }}
                     >
                       <Heart
                         size={18}
@@ -390,7 +493,22 @@ export default function StoryPage() {
                       variant="ghost"
                       size="icon"
                       className={`rounded-full h-10 w-10 ${isBookmarked ? "bg-blue-100 dark:bg-blue-900/30" : ""}`}
-                      onClick={() => setIsBookmarked(!isBookmarked)}
+                      onClick={async () => {
+                        if (!user) {
+                          router.push("/login");
+                          return;
+                        }
+                        setIsLoading(true);
+                        const newValue = !isBookmarked;
+                        setIsBookmarked(newValue);
+
+                        // Yer işaretlerine ekle/çıkar
+                        await toggleBookmark(user.id, storyId, newValue);
+
+                        // Aktiviteyi takip et
+                        trackBookmark(user.id, uuidStoryId, newValue ? 1 : 0);
+                        setIsLoading(false);
+                      }}
                     >
                       <Bookmark
                         size={18}
@@ -452,7 +570,8 @@ export default function StoryPage() {
                   }
                 }}
               >
-                <ChevronLeft size={16} className="mr-1" /> Önceki Masal
+                <ChevronLeft size={16} className="mr-1" />{" "}
+                {t("story.previousStory")}
               </Button>
               <Button
                 variant="ghost"
@@ -467,7 +586,8 @@ export default function StoryPage() {
                   }
                 }}
               >
-                Sonraki Masal <ChevronRight size={16} className="ml-1" />
+                {t("story.nextStory")}{" "}
+                <ChevronRight size={16} className="ml-1" />
               </Button>
             </div>
           </div>

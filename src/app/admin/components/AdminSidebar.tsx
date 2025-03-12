@@ -39,6 +39,11 @@ const AdminSidebar = () => {
       icon: <Users size={20} />,
     },
     {
+      name: "Analitik",
+      href: "/admin/analytics",
+      icon: <BarChart size={20} />,
+    },
+    {
       name: "Ayarlar",
       href: "/admin/settings",
       icon: <Settings size={20} />,
